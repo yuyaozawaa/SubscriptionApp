@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="language">ja</string>
+    <string name="billing_message_item" >すでに購入済み</string>
+    <string name="billing_message_support" >機能がサポートされていません</string>
+    <string name="billing_message_cancel" >ユーザーによるキャンセル</string>
+    <string name="billing_message_unavailable" >課金機能が利用できません</string>
+    <string name="billing_message_network" >ネットワークエラー</string>
+    <string name="billing_message_error" >エラー</string>
+    <string name="billing_message_invalid" >購入が無効です</string>
+    <string name="billing_message_pending" >保留中</string>
+    <string name="billing_message_unspecified" >未指定の状態</string>
+    <string name="subs_message_subs" >サブスク登録されていません</string>
+
+</resources>

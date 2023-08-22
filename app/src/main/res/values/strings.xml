@@ -1,3 +1,16 @@
 <resources>
-    <string name="app_name">SubscriptionApp</string>
+    <string name="language">en</string>
+    <string name="app_name" translatable="false">SubscriptionApp</string>
+
+    <string name="billing_message_item" >Already Subscribed</string>
+    <string name="billing_message_support" >FEATURE_NOT_SUPPORTED</string>
+    <string name="billing_message_cancel" >USER_CANCELED</string>
+    <string name="billing_message_unavailable" >BILLING_UNAVAILABLE</string>
+    <string name="billing_message_network" >NETWORK_ERROR</string>
+    <string name="billing_message_error" >Error</string>
+    <string name="billing_message_invalid" >Invalid Purchase</string>
+    <string name="billing_message_pending" >PENDING</string>
+    <string name="billing_message_unspecified" >UNSPECIFIED_STATE</string>
+    <string name="subs_message_subs" >Subscription not registered</string>
+
 </resources>
