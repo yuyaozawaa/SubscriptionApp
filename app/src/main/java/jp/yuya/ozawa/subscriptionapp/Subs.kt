@@ -11,11 +11,10 @@ import org.json.JSONObject
 import java.io.IOException
 
 class Subs : AppCompatActivity() {
-    var productId = -1
+    var basePlanId: String? = null
     private var billingClient: BillingClient? = null
 
     private lateinit var binding: ActivitySubsBinding
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -31,35 +30,35 @@ class Subs : AppCompatActivity() {
             .setListener(purchasesUpdatedListener)
             .enablePendingPurchases()
             .build()
+        billingClient!!.startConnection(object : BillingClientStateListener {
+            override fun onBillingServiceDisconnected() {
+            }
+            override fun onBillingSetupFinished(billingResult: BillingResult) {}})
 
-        binding.purchasedImageview.apply {
-            if (PreferenceHelper.getBoolean("key_purchased_standard", false)) {
-                //            product.text = getString(R.string.billing_message_item)
-                setImageResource(R.drawable.baseline_check_circle_24)
-                binding.card1.setBackgroundResource(R.drawable.stroke_change_to)
-            } else {
-                setImageResource(R.drawable.baseline_panorama_fish_eye_24)
-                binding.card1.setBackgroundResource(R.drawable.stroke_change)
-            }
+        if (PreferenceHelper.getBoolean("key_purchased_standard", false)) {
+            binding.purchasedImageview.setImageResource(R.drawable.baseline_check_circle_24)
+            binding.card1.setBackgroundResource(R.drawable.stroke_change_to)
+        } else {
+            binding.purchasedImageview.setImageResource(R.drawable.baseline_panorama_fish_eye_24)
+            binding.card1.setBackgroundResource(R.drawable.stroke_change)
         }
-        binding.purchasedProImageview2.apply {
-            if (PreferenceHelper.getBoolean("key_purchased_pro", false)) {
-                //            product.text = getString(R.string.billing_message_item)
-                setImageResource(R.drawable.baseline_check_circle_24)
-                binding.card2.setBackgroundResource(R.drawable.stroke_change_to)
-            } else {
-                setImageResource(R.drawable.baseline_panorama_fish_eye_24)
-                binding.card2.setBackgroundResource(R.drawable.stroke_change)
-            }
+
+
+        if (PreferenceHelper.getBoolean("key_purchased_pro", false)) {
+            //            product.text = getString(R.string.billing_message_item)
+            binding.purchasedProImageview2.setImageResource(R.drawable.baseline_check_circle_24)
+            binding.card2.setBackgroundResource(R.drawable.stroke_change_to)
+        } else {
+            binding.purchasedProImageview2.setImageResource(R.drawable.baseline_panorama_fish_eye_24)
+            binding.card2.setBackgroundResource(R.drawable.stroke_change)
         }
+
 
         binding.card1.setOnClickListener {
-            val index = binding.cardContainer.indexOfChild(binding.card1)
-            subscribeProduct(index)
+            subscribeProduct("standard")
         }
         binding.card2.setOnClickListener {
-            val index = binding.cardContainer.indexOfChild(binding.card2)
-            subscribeProduct(index)
+            subscribeProduct("pro")
         }
 
 
@@ -72,9 +71,9 @@ class Subs : AppCompatActivity() {
             }
         } else if (billingResult.responseCode == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED) {//ユーザーが既に所有している商品を再度購入しようとしたとき
             Toast.makeText(this, R.string.billing_message_item, Toast.LENGTH_SHORT).show()
-            when (productId) {
-                0 -> PreferenceHelper.setBoolean("key_purchased_standard", true)
-                1 -> PreferenceHelper.setBoolean("key_purchased_pro", true)
+            when (basePlanId) {
+                "standard" -> PreferenceHelper.setBoolean("key_purchased_standard", true)
+                "pro" -> PreferenceHelper.setBoolean("key_purchased_pro", true)
             }
             reloadScreen()
         } else if (billingResult.responseCode == BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED) {
@@ -101,7 +100,11 @@ class Subs : AppCompatActivity() {
         }
         billingClient!!.consumeAsync(consumeParams, listener)
         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {  //購入の状態を確認
-            if (!verifyvalidSignature(purchase.originalJson, purchase.signature)) { //ID、商品のID、購入のタイムスタンプ,デジタル署名,改ざんされていないかのチェック
+            if (!verifyvalidSignature(
+                    purchase.originalJson,
+                    purchase.signature
+                )
+            ) { //ID、商品のID、購入のタイムスタンプ,デジタル署名,改ざんされていないかのチェック
                 Toast.makeText(this, R.string.billing_message_invalid, Toast.LENGTH_SHORT).show()
                 return
             }
@@ -115,15 +118,15 @@ class Subs : AppCompatActivity() {
                     acknowledgePurchaseResponseListener
                 )
             } else {
-                Toast.makeText(this,  R.string.billing_message_item, Toast.LENGTH_SHORT).show()
-                when (productId) {
-                    0 -> PreferenceHelper.setBoolean("key_purchased_standard", true)
-                    1 -> PreferenceHelper.setBoolean("key_purchased_pro", true)
+                Toast.makeText(this, R.string.billing_message_item, Toast.LENGTH_SHORT).show()
+                when (basePlanId) {
+                    "standard" -> PreferenceHelper.setBoolean("key_purchased_standard", true)
+                    "pro" -> PreferenceHelper.setBoolean("key_purchased_pro", true)
                 }
                 reloadScreen()
             }
         } else if (purchase.purchaseState == Purchase.PurchaseState.PENDING) {
-            Toast.makeText(this,  R.string.billing_message_pending, Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.billing_message_pending, Toast.LENGTH_SHORT).show()
         } else if (purchase.purchaseState == Purchase.PurchaseState.UNSPECIFIED_STATE) {
             Toast.makeText(this, R.string.billing_message_unspecified, Toast.LENGTH_SHORT).show()
         }
@@ -131,9 +134,17 @@ class Subs : AppCompatActivity() {
 
     var acknowledgePurchaseResponseListener = AcknowledgePurchaseResponseListener { billingResult ->
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {     //購入の確認が成功した
-            when (productId) {
-                0 -> PreferenceHelper.setBoolean("key_purchased_standard", true)
-                1 -> PreferenceHelper.setBoolean("key_purchased_pro", true)
+            when (basePlanId) {
+                "standard" -> {
+                    if (!PreferenceHelper.getBoolean("key_purchased_pro", false)) {
+                        PreferenceHelper.setBoolean("key_purchased_standard", true)
+                    }
+                }
+                "pro" -> {
+                    if (!PreferenceHelper.getBoolean("key_purchased_standard", false)) {
+                        PreferenceHelper.setBoolean("key_purchased_pro", true)
+                    }
+                }
             }
             reloadScreen()
         }
@@ -142,7 +153,7 @@ class Subs : AppCompatActivity() {
     private fun verifyvalidSignature(signedData: String, signature: String): Boolean {
         return try {
             val security = Security()
-           val base64key =getString(R.string.key_base64key)
+            val base64key = getString(R.string.key_base64key)
             security.verifyPurchase(base64key, signedData, signature)
         } catch (e: IOException) {
             false
@@ -156,29 +167,33 @@ class Subs : AppCompatActivity() {
         startActivity(intent)
         overridePendingTransition(0, 0)
     }
+
     override fun onResume() {
         super.onResume()
-
         billingClient?.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder()
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build()
         ) { billingResult, purchasesList ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                for (purchase in purchasesList) {
-                    val sku = getSkuFromPurchaseJson(purchase.originalJson)
-                    when (sku) {
+                purchasesList?.forEach { purchase ->
+                    var product = purchase.accountIdentifiers?.obfuscatedProfileId ?: null
+                    when (product) {
                         "standard" -> {
                             if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
-                                val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
-                                    .setPurchaseToken(purchase.purchaseToken)
-                                    .build()
+                                val acknowledgePurchaseParams =
+                                    AcknowledgePurchaseParams.newBuilder()
+                                        .setPurchaseToken(purchase.purchaseToken)
+                                        .build()
 
                                 billingClient?.acknowledgePurchase(
                                     acknowledgePurchaseParams,
                                     acknowledgePurchaseResponseListener
                                 )
-                                PreferenceHelper.setBoolean("key_purchased_standard", true)
+                                PreferenceHelper.setBoolean(
+                                    "key_purchased_standard",
+                                    true
+                                )
                                 binding.purchasedImageview.apply {
                                     setImageResource(R.drawable.baseline_check_circle_24)
                                     binding.card1.setBackgroundResource(R.drawable.stroke_change_to)
@@ -192,9 +207,10 @@ class Subs : AppCompatActivity() {
                         }
                         "pro" -> {
                             if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
-                                val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
-                                    .setPurchaseToken(purchase.purchaseToken)
-                                    .build()
+                                val acknowledgePurchaseParams =
+                                    AcknowledgePurchaseParams.newBuilder()
+                                        .setPurchaseToken(purchase.purchaseToken)
+                                        .build()
 
                                 billingClient?.acknowledgePurchase(
                                     acknowledgePurchaseParams,
@@ -205,10 +221,14 @@ class Subs : AppCompatActivity() {
                                     setImageResource(R.drawable.baseline_check_circle_24)
                                     binding.card2.setBackgroundResource(R.drawable.stroke_change_to)
                                 }
-                                PreferenceHelper.setBoolean("key_purchased_standard", false)
+                                PreferenceHelper.setBoolean(
+                                    "key_purchased_standard",
+                                    false
+                                )
                                 binding.purchasedProImageview2.apply {
                                     setImageResource(R.drawable.baseline_panorama_fish_eye_24)
-                                    binding.card2.setBackgroundResource(R.drawable.stroke_change)}
+                                    binding.card2.setBackgroundResource(R.drawable.stroke_change)
+                                }
                             }
                         }
                     }
@@ -216,15 +236,7 @@ class Subs : AppCompatActivity() {
             }
         }
     }
-    fun getSkuFromPurchaseJson(purchaseJson: String): String? {
-        return try {
-            val jsonObject = JSONObject(purchaseJson)
-            jsonObject.getString("productId")
-        } catch (e: JSONException) {
-            null
-        }
-    }
-    fun subscribeProduct(index : Int) {
+    fun subscribeProduct(sku: String) {
         billingClient!!.startConnection(object : BillingClientStateListener {
             override fun onBillingServiceDisconnected() {
             }
@@ -242,21 +254,23 @@ class Subs : AppCompatActivity() {
                     billingClient!!.queryProductDetailsAsync(params.build()) { billingResult, productDetailsList ->
                         for (productDetails in productDetailsList) {        //製品詳細情報のリスト
                             val offerToken =
-                                productDetails.subscriptionOfferDetails?.get(index)?.offerToken
+                                productDetails.subscriptionOfferDetails?.find { it.basePlanId == sku }
                             val productDetailsParamsList = listOf(
                                 offerToken?.let {
                                     BillingFlowParams.ProductDetailsParams.newBuilder()
                                         .setProductDetails(productDetails)
-                                        .setOfferToken(it)
+                                        .setOfferToken(it.offerToken)
                                         .build()
                                 }
                             )
-                            val billingFlowParams = BillingFlowParams.newBuilder()
+                            val billingFlowProductParams = BillingFlowParams.newBuilder()
                                 .setProductDetailsParamsList(productDetailsParamsList)
+                                .setObfuscatedAccountId(sku) // obfuscatedProfileId を設定するには、obfuscatedAccountIdも指定しておく必要がある
+                                .setObfuscatedProfileId(sku)
                                 .build()
                             val billingResult =
-                                billingClient!!.launchBillingFlow(this@Subs, billingFlowParams)
-                            productId = index
+                                billingClient!!.launchBillingFlow(this@Subs, billingFlowProductParams)
+                            basePlanId = sku
                         }
                     }
                 }

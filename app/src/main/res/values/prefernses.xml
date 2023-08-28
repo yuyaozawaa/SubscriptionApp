@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <bool name="key_purchased_standard">false</bool>
-    <bool name="key_purchased_pro">false</bool>
+    <string name="key_purchased_standard" translatable="false">key_purchased_standard</string>
+    <string name="key_purchased_pro" translatable="false">key_purchased_pro</string>
     <string name="key_base64key" translatable="false">MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAugg/iEMSRS0FwmQLXz+2sYWjZab6dpk+lho5RftfASnBuTiV7FjDoACDgvt24ebCWSbnk8hG75KUmfbAENyMC8gPAEXKjbtGqlUSPg8Y2dz9Q8v4eWdVLjX3rTB9t/gt2upk9CyVADkmVoLbKDI5RAhFWnRj3IzN3UZLttZ/uFzi4NKb/4rFsi0m9cAMHeQ6TZ7Y/F9QylGIXM4YlvpMVtsCny3PPI1KJy8AACgfz0QoHsBDoyHQyGwKfWYMpThcUxfRvTYYOQGA4+3+C5lOo3APXv0VuqidVqbmJI0WenLVothRPv3UU7CXY9CAJbuJ6o6heFq3KteRTZXqRu6crQIDAQAB</string>
 </resources>

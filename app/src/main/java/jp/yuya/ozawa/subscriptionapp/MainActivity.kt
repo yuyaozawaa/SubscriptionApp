@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        if (!PreferenceHelper.getBoolean("key_purchased_standard", false) ||!PreferenceHelper.getBoolean("key_purchased_pro", false)) {
+        if (!PreferenceHelper.getBoolean("key_purchased_standard", false) && !PreferenceHelper.getBoolean("key_purchased_pro", false)) {
             AlertDialog.Builder(this).apply {
                 setMessage(R.string.subs_message_subs)
                 setPositiveButton("OK") { dialog, _ ->
