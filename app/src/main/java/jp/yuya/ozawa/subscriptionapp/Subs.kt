@@ -4,11 +4,9 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
 import com.android.billingclient.api.*
-import jp.yuya.ozawa.subscriptionapp.databinding.ActivityMainBinding
 import jp.yuya.ozawa.subscriptionapp.databinding.ActivitySubsBinding
-import org.json.JSONException
-import org.json.JSONObject
 import java.io.IOException
+import java.util.concurrent.Executors
 
 class Subs : AppCompatActivity() {
     var basePlanId: String? = null
@@ -30,10 +28,7 @@ class Subs : AppCompatActivity() {
             .setListener(purchasesUpdatedListener)
             .enablePendingPurchases()
             .build()
-        billingClient!!.startConnection(object : BillingClientStateListener {
-            override fun onBillingServiceDisconnected() {
-            }
-            override fun onBillingSetupFinished(billingResult: BillingResult) {}})
+        queryPurchase()
 
         if (PreferenceHelper.getBoolean("key_purchased_standard", false)) {
             binding.purchasedImageview.setImageResource(R.drawable.baseline_check_circle_24)
@@ -170,72 +165,94 @@ class Subs : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        billingClient?.queryPurchasesAsync(
-            QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.SUBS)
-                .build()
-        ) { billingResult, purchasesList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                purchasesList?.forEach { purchase ->
-                    var product = purchase.accountIdentifiers?.obfuscatedProfileId ?: null
-                    when (product) {
-                        "standard" -> {
-                            if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
-                                val acknowledgePurchaseParams =
-                                    AcknowledgePurchaseParams.newBuilder()
-                                        .setPurchaseToken(purchase.purchaseToken)
-                                        .build()
+        queryPurchase()
+    }
+    fun queryPurchase() {
+        billingClient!!.startConnection(object : BillingClientStateListener {
+            override fun onBillingServiceDisconnected() {
+            }
 
-                                billingClient?.acknowledgePurchase(
-                                    acknowledgePurchaseParams,
-                                    acknowledgePurchaseResponseListener
-                                )
-                                PreferenceHelper.setBoolean(
-                                    "key_purchased_standard",
-                                    true
-                                )
-                                binding.purchasedImageview.apply {
-                                    setImageResource(R.drawable.baseline_check_circle_24)
-                                    binding.card1.setBackgroundResource(R.drawable.stroke_change_to)
-                                }
-                                PreferenceHelper.setBoolean("key_purchased_pro", false)
-                                binding.purchasedImageview.apply {
-                                    setImageResource(R.drawable.baseline_panorama_fish_eye_24)
-                                    binding.card1.setBackgroundResource(R.drawable.stroke_change)
-                                }
-                            }
-                        }
-                        "pro" -> {
-                            if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
-                                val acknowledgePurchaseParams =
-                                    AcknowledgePurchaseParams.newBuilder()
-                                        .setPurchaseToken(purchase.purchaseToken)
-                                        .build()
+            override fun onBillingSetupFinished(billingResult: BillingResult) {
+                val executorService = Executors.newSingleThreadExecutor()
+                executorService.execute {
+                    billingClient?.queryPurchasesAsync(
+                        QueryPurchasesParams.newBuilder()
+                            .setProductType(BillingClient.ProductType.SUBS)
+                            .build()
+                    ) { billingResult, purchasesList ->
+                        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                            purchasesList?.forEach { purchase ->
+                                var product =
+                                    purchase.accountIdentifiers?.obfuscatedProfileId ?: null
+                                when (product) {
+                                    "standard" -> {
+                                        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                                            val acknowledgePurchaseParams =
+                                                AcknowledgePurchaseParams.newBuilder()
+                                                    .setPurchaseToken(purchase.purchaseToken)
+                                                    .build()
 
-                                billingClient?.acknowledgePurchase(
-                                    acknowledgePurchaseParams,
-                                    acknowledgePurchaseResponseListener
-                                )
-                                PreferenceHelper.setBoolean("key_purchased_pro", true)
-                                binding.purchasedProImageview2.apply {
-                                    setImageResource(R.drawable.baseline_check_circle_24)
-                                    binding.card2.setBackgroundResource(R.drawable.stroke_change_to)
-                                }
-                                PreferenceHelper.setBoolean(
-                                    "key_purchased_standard",
-                                    false
-                                )
-                                binding.purchasedProImageview2.apply {
-                                    setImageResource(R.drawable.baseline_panorama_fish_eye_24)
-                                    binding.card2.setBackgroundResource(R.drawable.stroke_change)
+                                            billingClient?.acknowledgePurchase(
+                                                acknowledgePurchaseParams,
+                                                acknowledgePurchaseResponseListener
+                                            )
+                                            PreferenceHelper.setBoolean(
+                                                "key_purchased_standard",
+                                                true
+                                            )
+                                            binding.purchasedImageview.apply {
+                                                setImageResource(R.drawable.baseline_check_circle_24)
+                                                binding.card1.setBackgroundResource(R.drawable.stroke_change_to)
+                                            }
+                                            PreferenceHelper.setBoolean("key_purchased_pro", false)
+                                            binding.purchasedImageview.apply {
+                                                setImageResource(R.drawable.baseline_panorama_fish_eye_24)
+                                                binding.card1.setBackgroundResource(R.drawable.stroke_change)
+                                            }
+                                        }
+                                    }
+                                    "pro" -> {
+                                        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                                            val acknowledgePurchaseParams =
+                                                AcknowledgePurchaseParams.newBuilder()
+                                                    .setPurchaseToken(purchase.purchaseToken)
+                                                    .build()
+
+                                            billingClient?.acknowledgePurchase(
+                                                acknowledgePurchaseParams,
+                                                acknowledgePurchaseResponseListener
+                                            )
+                                            PreferenceHelper.setBoolean("key_purchased_pro", true)
+                                            binding.purchasedProImageview2.apply {
+                                                setImageResource(R.drawable.baseline_check_circle_24)
+                                                binding.card2.setBackgroundResource(R.drawable.stroke_change_to)
+                                            }
+                                            PreferenceHelper.setBoolean(
+                                                "key_purchased_standard",
+                                                false
+                                            )
+                                            binding.purchasedProImageview2.apply {
+                                                setImageResource(R.drawable.baseline_panorama_fish_eye_24)
+                                                binding.card2.setBackgroundResource(R.drawable.stroke_change)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                runOnUiThread {
+                    try {
+                        Thread.sleep(1000)
+                    } catch (e: InterruptedException) {
+                        e.printStackTrace()
+                    }
+                }
             }
-        }
+        })
     }
+
     fun subscribeProduct(sku: String) {
         billingClient!!.startConnection(object : BillingClientStateListener {
             override fun onBillingServiceDisconnected() {
@@ -245,7 +262,7 @@ class Subs : AppCompatActivity() {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     val productList = listOf(
                         QueryProductDetailsParams.Product.newBuilder()
-                            .setProductId("testsub")
+                            .setProductId("subsc")
                             .setProductType(BillingClient.ProductType.SUBS)
                             .build()
                     )
