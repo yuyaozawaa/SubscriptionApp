@@ -205,7 +205,7 @@ class Subs : AppCompatActivity() {
                                                 binding.card1.setBackgroundResource(R.drawable.stroke_change_to)
                                             }
                                             PreferenceHelper.setBoolean("key_purchased_pro", false)
-                                            binding.purchasedImageview.apply {
+                                            binding.purchasedProImageview2.apply {
                                                 setImageResource(R.drawable.baseline_panorama_fish_eye_24)
                                                 binding.card1.setBackgroundResource(R.drawable.stroke_change)
                                             }
@@ -231,7 +231,7 @@ class Subs : AppCompatActivity() {
                                                 "key_purchased_standard",
                                                 false
                                             )
-                                            binding.purchasedProImageview2.apply {
+                                            binding.purchasedImageview.apply {
                                                 setImageResource(R.drawable.baseline_panorama_fish_eye_24)
                                                 binding.card2.setBackgroundResource(R.drawable.stroke_change)
                                             }
