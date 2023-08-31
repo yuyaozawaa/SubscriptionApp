@@ -131,14 +131,12 @@ class Subs : AppCompatActivity() {
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {     //購入の確認が成功した
             when (basePlanId) {
                 "standard" -> {
-                    if (!PreferenceHelper.getBoolean("key_purchased_pro", false)) {
                         PreferenceHelper.setBoolean("key_purchased_standard", true)
-                    }
+                        PreferenceHelper.setBoolean("key_purchased_pro", false)
                 }
                 "pro" -> {
-                    if (!PreferenceHelper.getBoolean("key_purchased_standard", false)) {
                         PreferenceHelper.setBoolean("key_purchased_pro", true)
-                    }
+                        PreferenceHelper.setBoolean("key_purchased_standard", false)
                 }
             }
             reloadScreen()
@@ -165,7 +163,28 @@ class Subs : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        queryPurchase()
+        if (billingClient?.isReady == false) {
+            billingClient!!.startConnection(object : BillingClientStateListener {
+                override fun onBillingServiceDisconnected() {
+                }
+
+                override fun onBillingSetupFinished(billingResult: BillingResult) {
+                    val executorService = Executors.newSingleThreadExecutor()
+                    executorService.execute {
+                        queryPurchaseAsync()
+                    }
+                    runOnUiThread {
+                        try {
+                            Thread.sleep(1000)
+                        } catch (e: InterruptedException) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            })
+        } else {
+            queryPurchase()
+        }
     }
     fun queryPurchase() {
         billingClient!!.startConnection(object : BillingClientStateListener {
@@ -200,15 +219,7 @@ class Subs : AppCompatActivity() {
                                                 "key_purchased_standard",
                                                 true
                                             )
-                                            binding.purchasedImageview.apply {
-                                                setImageResource(R.drawable.baseline_check_circle_24)
-                                                binding.card1.setBackgroundResource(R.drawable.stroke_change_to)
-                                            }
                                             PreferenceHelper.setBoolean("key_purchased_pro", false)
-                                            binding.purchasedProImageview2.apply {
-                                                setImageResource(R.drawable.baseline_panorama_fish_eye_24)
-                                                binding.card1.setBackgroundResource(R.drawable.stroke_change)
-                                            }
                                         }
                                     }
                                     "pro" -> {
@@ -223,18 +234,10 @@ class Subs : AppCompatActivity() {
                                                 acknowledgePurchaseResponseListener
                                             )
                                             PreferenceHelper.setBoolean("key_purchased_pro", true)
-                                            binding.purchasedProImageview2.apply {
-                                                setImageResource(R.drawable.baseline_check_circle_24)
-                                                binding.card2.setBackgroundResource(R.drawable.stroke_change_to)
-                                            }
                                             PreferenceHelper.setBoolean(
                                                 "key_purchased_standard",
                                                 false
                                             )
-                                            binding.purchasedImageview.apply {
-                                                setImageResource(R.drawable.baseline_panorama_fish_eye_24)
-                                                binding.card2.setBackgroundResource(R.drawable.stroke_change)
-                                            }
                                         }
                                     }
                                 }
@@ -252,7 +255,51 @@ class Subs : AppCompatActivity() {
             }
         })
     }
+    fun queryPurchaseAsync(){
+        billingClient?.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build()
+        ) { billingResult, purchasesList ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                purchasesList?.forEach { purchase ->
+                    var product = purchase.accountIdentifiers?.obfuscatedProfileId ?: null
+                    when (product) {
+                        "standard" -> {
+                            if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                                val acknowledgePurchaseParams =
+                                    AcknowledgePurchaseParams.newBuilder()
+                                        .setPurchaseToken(purchase.purchaseToken)
+                                        .build()
 
+                                billingClient?.acknowledgePurchase(
+                                    acknowledgePurchaseParams,
+                                    acknowledgePurchaseResponseListener
+                                )
+                                PreferenceHelper.setBoolean("key_purchased_standard", true)
+                                PreferenceHelper.setBoolean("key_purchased_pro", false)
+                            }
+                        }
+                        "pro" -> {
+                            if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                                val acknowledgePurchaseParams =
+                                    AcknowledgePurchaseParams.newBuilder()
+                                        .setPurchaseToken(purchase.purchaseToken)
+                                        .build()
+
+                                billingClient?.acknowledgePurchase(
+                                    acknowledgePurchaseParams,
+                                    acknowledgePurchaseResponseListener
+                                )
+                                PreferenceHelper.setBoolean("key_purchased_pro", true)
+                                PreferenceHelper.setBoolean("key_purchased_standard", false)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     fun subscribeProduct(sku: String) {
         billingClient!!.startConnection(object : BillingClientStateListener {
             override fun onBillingServiceDisconnected() {
@@ -262,7 +309,7 @@ class Subs : AppCompatActivity() {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     val productList = listOf(
                         QueryProductDetailsParams.Product.newBuilder()
-                            .setProductId("subsc")
+                            .setProductId("testsub")
                             .setProductType(BillingClient.ProductType.SUBS)
                             .build()
                     )
@@ -303,6 +350,4 @@ class Subs : AppCompatActivity() {
             billingClient!!.endConnection()
         }
     }
-
-
 }
